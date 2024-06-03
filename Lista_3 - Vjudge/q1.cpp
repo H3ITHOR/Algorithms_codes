@@ -1,20 +1,19 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <list>
 #include <stdexcept>
 
 using namespace std;
 
-// minha implementação de hash_table com linear probing
-
+// Minha implementação de hash_table com quadratic probing
 template <typename K, typename V>
 class HashNode {
 public:
     K key;
     V value;
-    HashNode() {}
-    HashNode(K key, V value) : key(key), value(value) {}
+    bool isDeleted;
+    HashNode() : isDeleted(false) {}
+    HashNode(K key, V value) : key(key), value(value), isDeleted(false) {}
 };
 
 template <typename K, typename V>
@@ -24,7 +23,7 @@ class MyHashTable {
     int count;
 
 public:
-    MyHashTable(int s) {
+    MyHashTable(int s) { // Método construtor
         count = 0;
         size = s;
         arr = new HashNode<K, V>*[size];
@@ -43,87 +42,83 @@ public:
         return abs(h) % 101; // Retorna h mod 101
     }
 
-
     V getItem(K key) {
         if (count == 0) {
-            // throw runtime_error();
-            return;
         }
         int hashIndex = hashIt(key);
-        int temp = hashIndex;
-        while (arr[hashIndex] != nullptr) {
-            if (arr[hashIndex]->key == key) {
-                return arr[hashIndex]->value;
+        for (int j = 0; j < 20; j++) {
+            int tempIndex = (hashIndex + j * j + 23 * j) % size;
+            if (arr[tempIndex] != nullptr && !arr[tempIndex]->isDeleted && arr[tempIndex]->key == key) {
+                return arr[tempIndex]->value;
             }
-            hashIndex = (hashIndex + 1) % size;
-            if (hashIndex == temp) {
-                break;
+            if (arr[tempIndex] == nullptr) {
+                break; // Parar a busca se encontrar uma posição vazia
             }
         }
-        // throw runtime_error();
-        return;
     }
 
-void insertItem(K key, V value) {
-    if (count == size) {
-        return;
-    }
-    
-    int hashIndex = hashIt(key);
-    int initialIndex = hashIndex;
-    int j = 0;
-    int examinedEntries = 0;
-    bool isThere;
-
-    while (arr[hashIndex] != nullptr && examinedEntries < 20) {
-        if (arr[hashIndex]->key == key) {
-            // Chave já existe, não é necessário inserir novamente
+    void insertItem(K key, V value) {
+        if (count == size) {
             return;
         }
-        // Resolve colisão utilizando quadratic probing
-        hashIndex = (initialIndex + j*j + 23*j) % size;
-        j++;
-        examinedEntries++;
-        // Verifica se voltou ao índice inicial, o que indica que a tabela está cheia
-        // if (hashIndex == initialIndex) {
-        //     return;
-        // }
+
+        // Primeiramente, verifica se a chave já existe na tabela
+        for (int i = 0; i < size; i++) {
+            if (arr[i] != nullptr && arr[i]->key == key && !arr[i]->isDeleted) {
+                // Chave já existe, não é necessário inserir novamente
+                return;
+            }
+        }
+
+        int hashIndex = hashIt(key);
+        int initialIndex = hashIndex;
+        int j = 0;
+        int examinedEntries = 0;
+
+        // Tenta inserir na primeira posição disponível ou marcada como deletada
+        while ((arr[hashIndex] != nullptr && !arr[hashIndex]->isDeleted) && examinedEntries < 20) {
+            // Resolve colisão utilizando quadratic probing
+            hashIndex = (initialIndex + j*j + 23*j) % size;
+            j++;
+            examinedEntries++;
+        }
+
+        // Insere na primeira posição disponível ou marcada como deletada
+        if (arr[hashIndex] == nullptr || arr[hashIndex]->isDeleted) {
+            if (arr[hashIndex] == nullptr) {
+                arr[hashIndex] = new HashNode<K, V>(key, value);
+            } else {
+                arr[hashIndex]->key = key;
+                arr[hashIndex]->value = value;
+                arr[hashIndex]->isDeleted = false;
+            }
+            count++;
+        }
     }
-
-    // Insere na primeira posição disponível
-    if (arr[hashIndex] == nullptr) {
-        arr[hashIndex] = new HashNode<K, V>(key, value);
-        count++;
-    }
-}
-
-
 
     void deleteItem(K key) {
         if (count == 0) {
             return;
         }
         int hashIndex = hashIt(key);
-        int temp = hashIndex;
-        while (arr[hashIndex] != nullptr) {
-            if (arr[hashIndex]->key == key) {
-                delete arr[hashIndex];
-                arr[hashIndex] = nullptr;
+        for (int j = 0; j < 20; j++) {
+            int tempIndex = (hashIndex + j * j + 23 * j) % size;
+            if (arr[tempIndex] != nullptr && !arr[tempIndex]->isDeleted && arr[tempIndex]->key == key) {
+                arr[tempIndex]->isDeleted = true;
                 count--;
                 return;
             }
-            hashIndex = (hashIndex + 1) % size;
-            if (hashIndex == temp) {
-                return;
+            if (arr[tempIndex] == nullptr) {
+                return; // Parar a busca se encontrar uma posição vazia
             }
         }
     }
 
     void displayAll() {
-        cout << count << " " << "\n";
+        cout << count << "\n";
         for (int i = 0; i < size; i++) {
-            if (arr[i] != nullptr) {
-                cout <<  i << ":" << arr[i]->value << " " << "\n";
+            if (arr[i] != nullptr && !arr[i]->isDeleted) {
+                cout << i << ":" << arr[i]->value << "\n";
             }
         }
     }
@@ -167,7 +162,6 @@ public:
         delete hashTable;
     }
 };
-
 
 int main() {
     int test_cases;
