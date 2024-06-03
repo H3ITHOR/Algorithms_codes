@@ -7,7 +7,11 @@ struct TreeNode {
     int val;
     TreeNode* left;
     TreeNode* right;
-    TreeNode(int x) : val(x), left(NULL), right(NULL) {}
+    TreeNode(int x){
+        val = x;
+        left = NULL;
+        right = NULL;
+    }
 };
 
 // Função para inserir um novo nó na árvore
@@ -23,7 +27,7 @@ TreeNode* insert(TreeNode* root, int val) {
 // Função de travessia pré-ordem
 void preOrder(TreeNode* root, vector<int>& result) {
     if (root == NULL) return;
-    result.push_back(root->val);
+    result.push_back(root->val); // push_back é um método proveniente da biblioteca vector, insere um elemento no final do vetor
     preOrder(root->left, result);
     preOrder(root->right, result);
 }
